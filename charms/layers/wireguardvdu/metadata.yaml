@@ -1,0 +1,26 @@
+name: wireguardvdu
+summary: Wireguard charm for osm 
+display-name: Wireguard-vdu
+maintainer: João Fonseca <jpedrofonseca@av.it.pt>
+description: |
+  This is a simple wireguard charm to be used in a vnf deployed on OSM
+tags:
+  # Replace "misc" with one or more whitelisted tags from this list:
+  # https://jujucharms.com/docs/stable/authors-charm-metadata
+  - network
+  - vpn
+  - osm
+  - nfv
+series:
+  - bionic
+#  - focal
+subordinate: false
+#provides:
+#  provides-relation:
+#    interface: interface-name
+#requires:
+#  requires-relation:
+#    interface: interface-name
+#peers:
+#  peer-relation:
+#    interface: interface-name

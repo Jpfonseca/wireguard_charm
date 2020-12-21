@@ -1,0 +1,7 @@
+includes: 
+  - layer:basic
+  - layer:apt
+options:
+  apt:
+    packages:
+     - wireguard
