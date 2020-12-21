@@ -6,13 +6,17 @@ options:
     type: int
     default: 51820
     description: "UDP port to listen for peers on"
-  server_address:
+  server_tunnel_address:
     type: string
     default: "10.0.0.1/24"
     description: "Interface server address"
-  client_address:
+  client_tunnel_address:
     type: string
     default: "10.0.0.2/24"
+    description: "Interface client address"
+  server_public_address:
+    type: string
+    default: "192.168.85.1/24"
     description: "Interface client address"
   forward_interface:
     type: string
@@ -24,5 +28,5 @@ options:
     description: "Configuration file should be saved on shutdown using the current status of the interface"
   wg_server:
     type: boolean
-    default: true
+    default: false
     description: "Specify if the charm should be configured as a server ou client"

@@ -97,7 +97,7 @@ def wireguard_server_configuration():
     
     conf="/etc/wireguard/"+config['forward_interface']+".conf"
 
-    wg_conf="[Interface]\nAddress = "+config['server_address']+"\nSaveConfig = "+str(config['save_config'])+"\nListenPort = "+str(config['listen_port'])+"\nPrivateKey = "+key+"PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o "+config['forward_interface']+" -j MASQUERADE"+"\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o "+config['forward_interface']+" -j MASQUERADE"
+    wg_conf="[Interface]\nAddress = "+config['server_tunnel_address']+"\nSaveConfig = "+str(config['save_config'])+"\nListenPort = "+str(config['listen_port'])+"\nPrivateKey = "+key+"PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o "+config['forward_interface']+" -j MASQUERADE"+"\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o "+config['forward_interface']+" -j MASQUERADE"
 
     log(wg_conf)
     with open(conf,"w") as f:
@@ -105,8 +105,13 @@ def wireguard_server_configuration():
     f.close()
 
 @when('wireguardvdu.client.config')
-def wireguard_server_configuration():
+def wireguard_client_configuration():
     status_set('maintenance', 'Client wireguard configuration started')
+    
+    with open("/etc/wireguard/privatekey",'r') as f:
+        clientprivatekey=f.read()
+    f.close()
+    
     with open("files/privatekey",'r') as f:
         serverkey=f.read()
     f.close()
@@ -117,7 +122,7 @@ def wireguard_server_configuration():
     
     conf="/etc/wireguard/"+config['forward_interface']+".conf"
 
-    wg_conf="[Interface]\nPrivateKey="+key+"Address = "+config['client_address']+"\n\n[Peer]\nPublicKey= "+serverpubkey+"Endpoint = "+config['server_address'].split('/')[0]+":"+config['listen_port']+"\nAllowedIPs = 0.0.0.0/0"
+    wg_conf="[Interface]\nPrivateKey= "+clientprivatekey+"Address = "+config['client_tunnel_address']+"\n\n[Peer]\nPublicKey= "+serverpubkey+"Endpoint = "+config['server_public_address'].split('/')[0]+":"+str(config['listen_port'])+"\nAllowedIPs = 0.0.0.0/0"
 
     log(wg_conf)
     with open(conf,"w") as f:
