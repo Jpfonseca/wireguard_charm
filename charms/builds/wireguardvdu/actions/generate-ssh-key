@@ -1,20 +1,4 @@
-# layer:basic
-# pip is pinned to <19.0 to avoid https://github.com/pypa/pip/issues/6164
-# even with installing setuptools before upgrading pip ends up with pip seeing
-# the older setuptools at the system level if include_system_packages is true
-pip>=18.1,<19.0
-# pin Jinja2 and PyYAML to the last versions supporting python 3.4 for trusty
-Jinja2<=2.10.1
-PyYAML<=5.2
-setuptools<42
-setuptools-scm<=1.17.0
-charmhelpers>=0.4.0,<1.0.0
-charms.reactive>=0.1.0,<2.0.0
-wheel<0.34
-# pin netaddr to avoid pulling importlib-resources
-netaddr<=0.7.19
-
-# layer:sshproxy
+#!/usr/bin/env python3
 ##
 # Copyright 2016 Canonical Ltd.
 # All rights reserved.
@@ -31,6 +15,19 @@ netaddr<=0.7.19
 # License for the specific language governing permissions and limitations
 # under the License.
 ##
+import sys
+sys.path.append('lib')
 
-paramiko>=1.16.0,<1.17
+from charms.reactive import main, set_flag
+from charmhelpers.core.hookenv import action_fail, action_name
 
+"""
+`set_state` only works here because it's flushed to disk inside the `main()`
+loop. remove_state will need to be called inside the action method.
+"""
+set_flag('actions.{}'.format(action_name()))
+
+try:
+    main()
+except Exception as e:
+    action_fail(repr(e))

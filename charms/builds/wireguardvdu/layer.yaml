@@ -2,21 +2,25 @@
 - "layer:options"
 - "layer:basic"
 - "layer:status"
+- "layer:sshproxy"
 - "layer:apt"
+- "layer:vnfproxy"
 "exclude": [".travis.yml", "tests", "tox.ini", "test-requirements.txt", "unit_tests"]
 "options":
+  "basic":
+    "use_venv": !!bool "false"
+    "packages": []
+    "python_packages": []
+    "include_system_packages": !!bool "false"
   "apt":
     "packages":
     - "wireguard"
     "version_package": ""
     "full_version": !!bool "false"
     "keys": []
-  "basic":
-    "packages": []
-    "python_packages": []
-    "use_venv": !!bool "true"
-    "include_system_packages": !!bool "false"
   "status":
     "patch-hookenv": !!bool "true"
+  "sshproxy": {}
+  "vnfproxy": {}
   "wireguardvdu": {}
 "is": "wireguardvdu"

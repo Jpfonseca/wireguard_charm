@@ -1,14 +1,28 @@
 from charms import apt
 from charms.reactive import hook
-from charms.reactive import when, when_not, set_flag
+from charms.reactive import clear_flag, when, when_not, set_flag
 
 import glob
+import charms.sshproxy
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import application_version_set, config, log, status_set
 from charmhelpers.fetch import get_upstream_version
 import subprocess as sp
 
 config=config()
+
+@when('sshproxy.configured')
+@when_not('wireguardvdu.installed')
+def install_packages():
+    try:
+        cmd = ['touch {}'.format("/tmp/test1"]
+        result, err = charms.sshproxy._run(cmd)
+    except:
+        action_fail('command failed:' + err)
+
+
+
+
 
 @when_not('apt.installed.wireguard')
 def install_packages():
