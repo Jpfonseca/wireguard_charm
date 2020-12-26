@@ -1,13 +1,13 @@
 includes: 
     - layer:basic
     - layer:options
-    - layer:apt
+#    - layer:apt
     - layer:vnfproxy
     - layer:sshproxy
 options:
     basic:
         use_venv: false
-    apt:
-        packages:
-            - wireguard
+#    apt:
+#        packages:
+#            - wireguard
 is: wireguardvdu

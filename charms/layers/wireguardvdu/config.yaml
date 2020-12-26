@@ -47,9 +47,9 @@ options:
 #
 #   IT-Aveiro
 #
-    install_sources:
-        type: string
-        default: ""
+#    install_sources:
+#        type: string
+#        default: ""
     listen_port:
         type: int
         default: 51820
@@ -76,5 +76,5 @@ options:
         description: "Configuration file should be saved on shutdown using the current status of the interface"
     wg_server:
         type: boolean
-        default: false
+        default: true
         description: "Specify if the charm should be configured as a server or client"
