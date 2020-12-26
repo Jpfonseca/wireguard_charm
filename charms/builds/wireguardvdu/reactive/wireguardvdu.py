@@ -38,6 +38,7 @@ config=config()
 #    else:
 #        set_flag('wireguardvdu.installed')
         
+@when('wireguardvdu.installed')
 @when('actions.touch')
 def touch():
     result=err = ''
@@ -71,7 +72,7 @@ def install_packages():
         set_flag('wireguardvdu.apt.not_installed')
     finally:
         set_flag('wireguardvdu.apt.installed')
-        status_set('active', 'Package Wireguard Installed')
+        status_set('maintenance', 'Package Wireguard Installed')
 
 @when('wireguardvdu.apt.installed')
 @when_not('wireguardvdu.installed')
@@ -127,7 +128,7 @@ def configuration_keygen():
         set_flag('keygen.failed')
     finally:
         set_flag('keygen.done')
-        status_set('active', 'Keygen Done')
+        status_set('maintenance', 'Keygen Done')
     
         status_set('maintenance',result)
     
