@@ -12,8 +12,9 @@ tags:
   - osm
   - nfv
 series:
+  - xenial
   - bionic
-#  - focal
+  - focal
 subordinate: false
 #provides:
 #  provides-relation:

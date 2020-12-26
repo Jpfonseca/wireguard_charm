@@ -38,24 +38,9 @@ config=config()
 #    else:
 #        set_flag('wireguardvdu.installed')
         
-@when('wireguardvdu.installed')
-@when('actions.touch')
-def touch():
-    result=err = ''
-    try:
-        filename = action_get('filename')
-        cmd = ['touch {}'.format(filename)]
-        result, err = charms.sshproxy._run(cmd)
-    except:
-        action_fail('command failed:' + err)
-    else:
-        action_set({'output': result, "errors": err})
-    finally:
-        clear_flag('actions.touch')
-
 
 @when('sshproxy.configured')
-@when_not('wireguardvdu.apt.installed')
+@when_not('wireguardvdu.installed')
 def install_packages():
     status_set('maintenance', 'Installing wireguard')
     result=err = ''
@@ -298,3 +283,20 @@ def start_wireguard():
         log("Wireguard config:\n"+result)
         status_set('active','Wireguard installed and configured')
         set_flag('wireguardvdu.installed')
+        status_set('active', 'Ready!')
+@when('actions.touch')
+@when('wireguardvdu.installed')
+def touch():
+    result=err = ''
+    try:
+        filename = action_get('filename')
+        cmd = ['touch {}'.format(filename)]
+        result, err = charms.sshproxy._run(cmd)
+    except:
+        action_fail('command failed:' + err)
+    else:
+        action_set({'output': result, "errors": err})
+    finally:
+        clear_flag('actions.touch')
+
+
