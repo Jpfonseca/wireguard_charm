@@ -24,21 +24,6 @@ from charmhelpers.fetch import get_upstream_version
 
 config=config()
 
-#@when('sshproxy.configured')
-#@when_not('wireguardvdu.installed')
-#def install_packages():
-#    err = ''
-#    status_set('active', 'Ready!')
-#    try:
-#        filename="/tmp/test0"
-#        cmd = ['touch {}'.format(filename)]
-#        result, err = charms.sshproxy._run(cmd)
-#    except:
-#        log('command failed:' + err)
-#    else:
-#        set_flag('wireguardvdu.installed')
-        
-
 @when('sshproxy.configured')
 @when_not('wireguardvdu.installed')
 def install_packages():
@@ -226,9 +211,12 @@ def wireguard_client_configuration():
         serverpubkey=f.read()
     f.close()
     
+
+    ##TODO Save server public key in the client machine
+
     conf="/etc/wireguard/"+config['forward_interface']+".conf"
 
-    wg_conf="[Interface]\nPrivateKey= "+clientprivatekey+"\nAddress = "+config['client_tunnel_address']+"\n\n[Peer]\nPublicKey= "+serverpubkey+"\nEndpoint = "+config['server_public_address'].split('/')[0]+":"+str(config['listen_port'])+"\nAllowedIPs = 0.0.0.0/0"
+    wg_conf="[Interface]\nPrivateKey= "+clientprivatekey+"\nAddress = "+config['client_tunnel_address']+"\nListenPort = "+str(config['listen_port'])+"\n\n[Peer]\nPublicKey= "+serverpubkey+"\nEndpoint = "+config['server_public_address'].split('/')[0]+":"+str(config['listen_port'])+"\nAllowedIPs = 0.0.0.0/0"
     
 
     log(wg_conf)
@@ -284,6 +272,11 @@ def start_wireguard():
         status_set('active','Wireguard installed and configured')
         set_flag('wireguardvdu.installed')
         status_set('active', 'Ready!')
+
+#
+##Actions
+#
+
 @when('actions.touch')
 @when('wireguardvdu.installed')
 def touch():
@@ -298,5 +291,131 @@ def touch():
         action_set({'output': result, "errors": err})
     finally:
         clear_flag('actions.touch')
+
+##############
+
+@when('actions.confclient')
+@when('wireguardvdu.client.config')
+@when('wireguardvdu.installed')
+def configure_client():
+    status_set('maintenance', 'Client wireguard configuration started')
+    
+    result=err = ''
+    try:
+        filename="/etc/wireguard/privatekey"
+        cmd = ['sudo cat {}'.format(filename)]
+        result, err = charms.sshproxy._run(cmd)
+    except:
+        log('command failed:' + err)
+    else:
+        set_flag('wireguardvdu.load.keys.failed')
+    finally:
+        clientprivatekey=result
+    
+    serverpubkey=action_get('server_public_key')
+    server_public_address=action_get('server_public_address')
+    log(type(serverpubkey))
+    log(type(server_public_address))
+    log(server_public_address.split('/')[0])
+
+    conf="/etc/wireguard/"+config['forward_interface']+".conf"
+
+    wg_conf="[Interface]\nPrivateKey= "+clientprivatekey+"\nAddress = "+config['client_tunnel_address']+"\nListenPort = "+str(config['listen_port'])+"\n\n[Peer]\nPublicKey= "+serverpubkey+"\nEndpoint = "+server_public_address.split('/')[0]+":"+str(config['listen_port'])+"\nAllowedIPs = 0.0.0.0/0"
+    
+    log(wg_conf)
+
+    result=err = ''
+    try:
+        cmd = ['echo "{}" |sudo tee {}'.format(wg_conf,conf)]
+        result, err = charms.sshproxy._run(cmd)
+    except:
+        action_fail('command failed:' + err)
+    else:
+        action_set({'output': result, "errors": err})
+    finally:
+        set_flag('tunnel.configured')
+        clear_flag('actions.confclient')
+
+####
+
+@when('actions.connserver')
+@when('tunnel.configured')
+@when('wireguardvdu.installed')
+def connect_server():
+    result=err = ''
+    if not action_get('confirmation'):
+        action_fail('command failed; confirmation needed')
+    else:
+        status_set('maintenance','Wireguard client quick start')
+        result=err = ''
+        try:           
+            cmd = ['sudo wg-quick up {}'.format(config['forward_interface'])]
+            result, err = charms.sshproxy._run(cmd)
+        except:
+            action_fail('command failed:' + err)
+            log('command failed:' + err)
+        else:
+            action_set({'output': result, "errors": err})
+            set_flag('wireguard.server.start.failed')
+        finally:
+            log(result)
+
+        log("Wireguard interface up:\n"+result)
+       
+        result=err = ''
+        try:
+            cmd = ['sudo wg show {}'.format(config['forward_interface'])]
+            result, err = charms.sshproxy._run(cmd)
+        except:
+            action_fail('command failed:' + err)
+            log('command failed:' + err)
+        else:
+            action_set({'output': result, "errors": err})
+            set_flag('wireguard.server.config.failed')
+        finally:
+            log(result)
+            clear_flag('actions.connserver')
+
+        log("Wireguard config:\n"+result)
+        status_set('active','Wireguard installed and configured')
+
+        status_set('active', 'Tunnel Ready!')
+#
+@when('actions.addpeer')
+@when('wireguardvdu.server.config')
+@when('wireguardvdu.installed')
+def addpeer():
+    result=err = ''
+    try:
+        endpoint = action_get('endpoint')
+        client_public_key= action_get('client_public_key')
+  
+        conf="/etc/wireguard/"+config['forward_interface']+".conf"
+        wgconf="\n\n[Peer]\nPublicKey= "+client_public_key+"\nEndpoint = "+endpoint+":"+str(config['listen_port'])+"\nAllowedIPs = 10.0.0.2/32"
+        cmd = ['echo {} |sudo tee -a {}'.format(wgconf,conf)]
+        log(cmd)
+        result, err = charms.sshproxy._run(cmd)
+    except:
+        action_fail('command failed:' + err)
+    else:
+        action_set({'output': result, "errors": err})
+    finally:
+        log(result)
+    
+    try:           
+        cmd = ['sudo wg-quick down {} && sudo wg-quick up {}'.format(config['forward_interface'],config['forward_interface'])]
+        result, err = charms.sshproxy._run(cmd)
+    except:
+        action_fail('command failed:' + err)
+        log('command failed:' + err)
+    else:
+        action_set({'output': result, "errors": err})
+        set_flag('wireguard.server.start.failed')
+    finally:
+        log(result)
+
+    
+
+    clear_flag('actions.addpeer')
 
 

@@ -1,0 +1,5 @@
+wireguardvdu:
+    ssh-hostname: 10.0.13.219
+    ssh-username: ubuntu
+    ssh-password: ubuntu
+
