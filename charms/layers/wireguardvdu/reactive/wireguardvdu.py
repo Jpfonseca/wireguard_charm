@@ -142,7 +142,7 @@ def configuration_keygen():
 
     set_flag('keygen.done')
     log("Key Generation done")
-    set_flag('wireguardvdu.config')
+    set_flag('wireguard.config')
 
 
 @when('config.loadkey')
