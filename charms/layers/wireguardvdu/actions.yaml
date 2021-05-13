@@ -63,15 +63,14 @@ addpeer:
             default: false
         peer_listen_port:
             description: Listen Port of the Server
-                type: string
-                default: "51820"
+            type: string
+            default: "51820"
         peer_allowed_ips:
             description: Allowed Ips via the VPN
-                type: string
-                default: "10.0.0.2"
+            type: string
+            default: "10.0.0.2"
     required:
         - endpoint
         - client_public_key
 getserverinfo:
     description: Action that fetches data from the server
-
