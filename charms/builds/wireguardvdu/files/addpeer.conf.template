@@ -1,0 +1,4 @@
+[Peer]
+Endpoint = {}":"{}
+PublicKey = {}
+AllowedIPs = {}

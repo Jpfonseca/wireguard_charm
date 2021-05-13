@@ -31,18 +31,14 @@
     "type": "int"
     "default": !!int "51820"
     "description": "UDP port to listen for peers on"
-  "server_tunnel_address":
+  "tunnel_address":
     "type": "string"
     "default": "10.0.0.1/24"
     "description": "Interface server address"
-  "client_tunnel_address":
+  "external_interface":
     "type": "string"
-    "default": "10.0.0.2/24"
-    "description": "Interface client address"
-  "server_public_address":
-    "type": "string"
-    "default": "192.168.85.1/24"
-    "description": "Interface client address"
+    "default": "eth0"
+    "description": "Management interface"
   "forward_interface":
     "type": "string"
     "default": "wg0"
@@ -52,7 +48,13 @@
     "default": !!bool "true"
     "description": "Configuration file should be saved on shutdown using the current\
       \ status of the interface"
-  "wg_server":
+  "import_tunnel_keys":
     "type": "boolean"
-    "default": !!bool "true"
-    "description": "Specify if the charm should be configured as a server or client"
+    "default": !!bool "false"
+    "description": "Specify if the charm should load a keys for the tunnel or generate\
+      \ these attributes"
+  "import_tunnel_config":
+    "type": "boolean"
+    "default": !!bool "false"
+    "description": "Specify if the charm should load a keys for the tunnel or generate\
+      \ these attributes"
