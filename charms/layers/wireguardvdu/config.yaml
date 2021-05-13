@@ -1,5 +1,6 @@
 ##
 # Copyright 2016 Canonical Ltd.
+# Copyright 2020 IT Aveiro, João Fonseca
 # All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -47,25 +48,18 @@ options:
 #
 #   IT-Aveiro
 #
-#    install_sources:
-#        type: string
-#        default: ""
     listen_port:
         type: int
         default: 51820
         description: "UDP port to listen for peers on"
-    server_tunnel_address:
+    tunnel_address:
         type: string
         default: "10.0.0.1/24"
         description: "Interface server address"
-    client_tunnel_address:
+    external_interface:
         type: string
-        default: "10.0.0.2/24"
-        description: "Interface client address"
-    server_public_address:
-        type: string
-        default: "192.168.85.1/24"
-        description: "Interface client address"
+        default: "eth0"
+        description: "Management interface"
     forward_interface:
         type: string
         default: "wg0"
@@ -74,11 +68,11 @@ options:
         type: boolean
         default: true
         description: "Configuration file should be saved on shutdown using the current status of the interface"
-    wg_server:
-        type: boolean
-        default: true
-        description: "Specify if the charm should be configured as a server or client"
-    import_config:
+    import_tunnel_keys:
         type: boolean
         default: false
-        description: "Specify if the chamr should load a configuration/keys for the tunnel or generate these attributes"
+        description: "Specify if the charm should load a keys for the tunnel or generate these attributes"
+    import_tunnel_config:
+        type: boolean
+        default: false
+        description: "Specify if the charm should load a keys for the tunnel or generate these attributes"

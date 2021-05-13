@@ -1,3 +1,21 @@
+##
+# Copyright 2016 Canonical Ltd.
+# Copyright 2020 IT Aveiro, João Fonseca
+# All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+##
+
 #
 # General VNF actions
 #
@@ -32,41 +50,28 @@ touch:
             default: ""
     required:
         - filename
-confclient:
-    description: Action that enables a peer to configure the Wireguard Server information
-    params:
-        server_public_address:
-            description: The public ip of the wireguard client peer
-            type: string
-            default: "10.0.13.221/24"
-        server_public_key:
-            description: The public key of the Wireguard server 
-            type: string
-            default: ""
-    required:
-        - server_public_address
-        - server_public_key
-connserver:
-    description: Action that enables a peer to connect to a Wireguard Server
-    params:
-        confirmation:
-            description: Confirmation step before connection to the Server
-            type: boolean
-            default: false
-    required:
-        - confirmation
 addpeer:
     description: Action that adds an allowed peer to the wireguard server
     params:
-        endpoint:
+        peer_endpoint:
             description: Public Endpoint of the Server
             type: string
-            default: false
-        client_public_key:
-            description: Public Endpoint of the Server
+            default: "10.0.13.221/24"
+        peer_public_key:
+            description: The public key of the Wireguard server
             type: string
             default: false
+        peer_listen_port:
+            description: Listen Port of the Server
+                type: string
+                default: "51820"
+        peer_allowed_ips:
+            description: Allowed Ips via the VPN
+                type: string
+                default: "10.0.0.2"
     required:
         - endpoint
         - client_public_key
-    
+getserverinfo:
+    description: Action that fetches data from the server
+

@@ -294,7 +294,7 @@ def touch():
 
 ##############
 
-@when('actions.confclient')
+@when('actions.getserverinfo')
 @when('wireguardvdu.client.config')
 @when('wireguardvdu.installed')
 def configure_client():
@@ -334,7 +334,7 @@ def configure_client():
         action_set({'output': result, "errors": err})
     finally:
         set_flag('tunnel.configured')
-        clear_flag('actions.confclient')
+        clear_flag('actions.getserverinfo')
 
 ####
 

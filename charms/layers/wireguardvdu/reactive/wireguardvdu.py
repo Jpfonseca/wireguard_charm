@@ -1,3 +1,19 @@
+##
+# Copyright 2020-2021 IT Aveiro, João Fonseca
+# All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+##
 from charmhelpers.core.hookenv import (
     config,
     log,
@@ -33,7 +49,7 @@ def ssh_command(cmd):
 
 
 def valid_command(cmd, err, flag):
-    if len(err):
+    if err is not None and len(err):
         set_flag(flag)
         status_set('blocked', 'Command failed: {}, errors: {}'.format(cmd, err))
         return False
@@ -41,6 +57,7 @@ def valid_command(cmd, err, flag):
 
 
 @when('sshproxy.configured')
+@when_not('wireguard.start')
 @when_not('wireguardvdu.installed')
 def install_packages():
     status_set('maintenance', 'Installing wireguard')
@@ -62,6 +79,7 @@ def install_packages():
 
 
 @when('wireguardvdu.apt.installed')
+@when_not('wireguard.start')
 @when_not('wireguardvdu.installed')
 def wireguard_version_check():
     log('setting application version')
@@ -75,7 +93,7 @@ def wireguard_version_check():
 
     status_set('maintenance', result)
 
-    if config['import_config']:
+    if config['import_tunnel_keys']:
         files = glob.glob("files/*key")
         count = 0
         for x in files:
@@ -93,6 +111,7 @@ def wireguard_version_check():
 
 
 @when('config.keygen')
+@when_not('wireguard.start')
 @when_not('wireguardvdu.installed')
 def configuration_keygen():
     status_set('maintenance', 'Wireguard Key generation')
@@ -104,7 +123,7 @@ def configuration_keygen():
     log('Key Generation start')
 
     cmd = ['wg genkey | sudo tee {} | wg pubkey | sudo tee {}'.format(key_location[0], key_location[1])]
-    result, err = charms.sshproxy._run(cmd)
+    result, err = ssh_command(cmd)
 
     if not valid_command(cmd, err, 'keygen.failed'):
         return
@@ -123,13 +142,11 @@ def configuration_keygen():
 
     set_flag('keygen.done')
     log("Key Generation done")
-    if config['wg_server']:
-        set_flag('wireguardvdu.server.config')
-    else:
-        set_flag('wireguardvdu.client.config')
+    set_flag('wireguardvdu.config')
 
 
 @when('config.loadkey')
+@when_not('wireguard.start')
 @when_not('wireguardvdu.installed')
 def configuration_loadkey():
     status_set('maintenance', 'Wireguard Load Keys')
@@ -149,77 +166,53 @@ def configuration_loadkey():
         if not valid_command("sftp", err, 'wireguardvdu.load.keys.failed'):
             log('Command sftp ' + remote_key + ' failed')
             break
-
-    status_set('maintenance', 'Load Keys Done')
     set_flag('loadkeys.done')
+    status_set('maintenance', 'Load Keys Done')
 
-    if config['wg_server']:
-        set_flag('wireguardvdu.server.config')
-    else:
-        set_flag('wireguardvdu.client.config')
+    set_flag('wireguard.config')
 
 
-@when('wireguardvdu.server.config')
+@when('wireguard.config')
 @when_not('wireguardvdu.installed')
-def wireguard_server_configuration():
+@when_not('wireguard.start')
+def wireguard_config():
     status_set('maintenance', 'Server wireguard configuration started')
 
     filename = "/etc/wireguard/privatekey"
     cmd = ['sudo cat {}'.format(filename)]
-    key, err = charms.sshproxy._run(cmd)
+    key, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'config.keygen'):
-        clear_flag('wireguardvdu.server.config')
+        clear_flag('wireguard.config')
         return
 
     conf = "/etc/wireguard/" + config['forward_interface'] + ".conf"
 
-    wg_conf = "[Interface]\nAddress = " + config['server_tunnel_address'] + \
-              "\nSaveConfig = " + str(config['save_config']) + \
-              "\nListenPort = " + str(config['listen_port']) + \
-              "\nPrivateKey = " + key + \
-              "\nPostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o " + \
-              config['forward_interface'] + \
-              " -j MASQUERADE" + \
-              "\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o " + \
-              config['forward_interface'] + " -j MASQUERADE"
+    with open("files/wg0.conf.template", "rb") as f:
+        x = f.read()
+    f.close()
+
+    wg_conf = (x.decode()).format(config['tunnel_address'],
+                                  str(config['save_config']),
+                                  str(config['listen_port']),
+                                  key,
+                                  config['external_interface'],
+                                  config['forward_interface'],
+                                  config['external_interface'],
+                                  config['forward_interface']
+                                  )
+
     log(wg_conf)
+    with open("files/wg_conf.conf", "w") as f:
+        f.write(wg_conf)
+    f.close()
 
-    cmd = ['echo "{}" |sudo tee {}'.format(wg_conf, conf)]
-    result, err = charms.sshproxy._run(cmd)
+    cfg = charms.sshproxy.get_config()
+    host = charms.sshproxy.get_host_ip()
+    user = cfg['ssh-username']
+    result, err = charms.sshproxy.sftp(wg_conf, conf, host, user)
 
-    if not valid_command(cmd, err, 'wireguard.server.config.failed'):
-        return
-    log(result)
-    set_flag('wireguard.start')
-
-
-@when('wireguardvdu.client.config')
-@when_not('wireguardvdu.installed')
-def wireguard_client_configuration():
-    status_set('maintenance', 'Client wireguard configuration started')
-
-    key_location = ["/etc/wireguard/privatekey", "/etc/wireguard/publickey"]
-    keys = []
-    for x in key_location:
-        cmd = ['sudo cat {}'.format(x)]
-        result, err = ssh_command(cmd)
-        if not valid_command(cmd, err, 'wireguard.client.config.failed'):
-            break
-        keys.append(x)
-    [clientprivatekey, serverpubkey] = keys
-
-    conf = "/etc/wireguard/" + config['forward_interface'] + ".conf"
-    wg_conf = "[Interface]\nPrivateKey= " + clientprivatekey + \
-              "\nAddress = " + config['client_tunnel_address'] + \
-              "\nListenPort = " + str(config['listen_port']) + \
-              "\n\n[Peer]\nPublicKey= " + serverpubkey + \
-              "\nEndpoint = " + config['server_public_address'].split('/')[0] + ":" + str(config['listen_port']) + \
-              "\nAllowedIPs = 0.0.0.0/0"
-    log(wg_conf)
-
-    cmd = ['echo "{}" |sudo tee {}'.format(wg_conf, conf)]
-    result, err = charms.sshproxy._run(cmd)
-    if not valid_command(cmd, err, 'wireguard.client.config.failed'):
+    if not valid_command("sftp", err, 'wireguard.config.failed'):
+        log('Command sftp ' + conf + ' failed')
         return
 
     log(result)
@@ -229,30 +222,29 @@ def wireguard_client_configuration():
 @when('wireguard.start')
 @when_not('wireguardvdu.installed')
 def start_wireguard():
-    if not config['wg_server']:
-        status_set('active', 'Wireguard Client installed and configured')
-        set_flag('wireguardvdu.installed')
-    else:
-        status_set('maintenance', 'Wireguard quick start')
+    status_set('maintenance', 'Wireguard quick start')
 
-        forward_interface = config['forward_interface']
+    cmd = ['sudo wg-quick down {} || sudo wg-quick up {}'.format(config['forward_interface'],
+                                                                 config['forward_interface'])]
+    result, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'wireguard.start.failed'):
+        return
 
-        cmd = ['sudo wg-quick up {}'.format(forward_interface)]
-        result, err = ssh_command(cmd)
-        if not valid_command(cmd, err, 'wireguard.server.start.failed'):
-            return
-
+    if result is not None:
         log("Wireguard interface up:\n" + result)
+    else:
+        return
 
-        cmd = ['sudo wg show {}'.format(config['forward_interface'])]
-        result, err = ssh_command(cmd)
-        if not valid_command(cmd, err, 'wireguard.server.config.failed'):
-            return
+    cmd = ['sudo wg show {}'.format(config['forward_interface'])]
+    result, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'wireguard.server.start.failed'):
+        return
 
-        log("Wireguard config:\n" + result)
-        status_set('active', 'Wireguard installed and configured')
-        set_flag('wireguardvdu.installed')
-        status_set('active', 'Ready!')
+    log("Wireguard config:\n" + result)
+    status_set('active', 'Wireguard installed and configured')
+    set_flag('wireguardvdu.installed')
+    status_set('active', 'Ready!')
+
 
 #
 # Actions
@@ -264,7 +256,7 @@ def start_wireguard():
 def touch():
     filename = action_get('filename')
     cmd = ['touch {}'.format(filename)]
-    result, err = charms.sshproxy._run(cmd)
+    result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'action.touch.failed'):
         action_fail('command failed:' + err)
         return
@@ -272,104 +264,32 @@ def touch():
     action_set({'output': result, "errors": err})
     clear_flag('actions.touch')
 
+
 ##############
 
-
-@when('actions.confclient')
-@when('wireguardvdu.client.config')
-@when('wireguardvdu.installed')
-def configure_client():
-    status_set('maintenance', 'Client wireguard configuration started')
-
-    filename = "/etc/wireguard/privatekey"
-    cmd = ['sudo cat {}'.format(filename)]
-    result, err = ssh_command(cmd)
-    if not valid_command(cmd, err, 'action.touch.failed'):
-        action_fail('command failed:' + err)
-        return
-
-    log('command failed:' + err)
-    clientprivatekey = result
-
-    serverpubkey = action_get('server_public_key')
-    server_public_address = action_get('server_public_address')
-    log(type(serverpubkey))
-    log(type(server_public_address))
-    log(server_public_address.split('/')[0])
-
-    conf = "/etc/wireguard/" + config['forward_interface'] + ".conf"
-
-    wg_conf = "[Interface]\nPrivateKey= " + clientprivatekey + \
-              "\nAddress = " + config['client_tunnel_address'] + \
-              "\nListenPort = " + str(config['listen_port']) + \
-              "\n\n[Peer]\nPublicKey= " + serverpubkey + \
-              "\nEndpoint = " + server_public_address.split('/')[0] + ":" + str(config['listen_port']) + \
-              "\nAllowedIPs = 0.0.0.0/0"
-
-    log(wg_conf)
-
-    cmd = ['echo "{}" |sudo tee {}'.format(wg_conf, conf)]
-    result, err = ssh_command(cmd)
-    if not valid_command(cmd, err, 'action.touch.failed'):
-        action_fail('command failed:' + err)
-        return
-
-    action_set({'output': result, "errors": err})
-
-    set_flag('tunnel.configured')
-    clear_flag('actions.confclient')
-
-
-####
-
-@when('actions.connserver')
-@when('tunnel.configured')
-@when('wireguardvdu.installed')
-def connect_server():
-    if not action_get('confirmation'):
-        action_fail('Command failed; Confirmation needed')
-    else:
-        status_set('maintenance', 'Wireguard client quick start')
-
-        cmd = ['sudo wg-quick up {}'.format(config['forward_interface'])]
-        result, err = ssh_command(cmd)
-        if not valid_command(cmd, err, 'wireguard.server.start.failed'):
-            action_fail('command failed:' + err)
-            return
-
-        action_set({'output': result, "errors": err})
-        log("Wireguard interface up:\n" + result)
-
-        cmd = ['sudo wg show {}'.format(config['forward_interface'])]
-        result, err = ssh_command(cmd)
-        if not valid_command(cmd, err, 'wireguard.server.start.failed'):
-            action_fail('command failed:' + err)
-            return
-
-        action_set({'output': result, "errors": err})
-        clear_flag('actions.connserver')
-        log("Wireguard config:\n" + result)
-
-        status_set('active', 'Wireguard installed and configured')
-        status_set('active', 'Tunnel Ready!')
-
-
 @when('actions.addpeer')
-@when('wireguardvdu.server.config')
 @when('wireguardvdu.installed')
 def addpeer():
-    endpoint = action_get('endpoint')
-    client_public_key = action_get('client_public_key')
+
+    peer_endpoint = action_get('peer_endpoint')
+    peer_public_key = action_get('peer_public_key')
+    peer_listen_port = action_get('peer_listen_port')
+    allowed_ips = action_get('peer_allowed_ips')
 
     conf = "/etc/wireguard/" + config['forward_interface'] + ".conf"
-    wgconf = "\n\n[Peer]\nPublicKey= " + client_public_key + \
-             "\nEndpoint = " + endpoint + ":" + str(config['listen_port']) + \
-             "\nAllowedIPs = 10.0.0.2/32"
+
+    with open("files/addpeer.conf.template", "rb") as f:
+        x = f.read()
+    f.close()
+
+    wgconf = (x.decode()).format(peer_endpoint, peer_listen_port, peer_public_key, allowed_ips)
     cmd = ['echo {} |sudo tee -a {}'.format(wgconf, conf)]
 
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
         action_fail('command failed:' + err)
+        action_set({'output': result, "errors": err})
+        clear_flag('actions.addpeer')
         return
 
     log(result)
@@ -379,8 +299,35 @@ def addpeer():
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
         action_fail('command failed:' + err)
+        action_set({'output': result, "errors": err})
+        clear_flag('actions.addpeer')
         return
 
     action_set({'output': result, "errors": err})
     log(result)
     clear_flag('actions.addpeer')
+
+
+@when('actions.getserverinfo')
+@when('wireguardvdu.installed')
+def get_server_info():
+    filename = "/etc/wireguard/publickey"
+    cmd = ['sudo cat {}'.format(filename)]
+    pubkey, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'config.keygen'):
+        action_fail('command failed:' + err)
+        action_set({'output': pubkey, "errors": err})
+        clear_flag('actions.get_server_info')
+        return
+
+    host = charms.sshproxy.get_host_ip()
+
+    action_set(
+        {
+            'endpoint': host,
+            'listen_port':     str(config['listen_port']),
+            'tunnel_address':     config['tunnel_address'],
+            'publickey': pubkey
+        }
+    )
+    clear_flag('actions.getserverinfo')
