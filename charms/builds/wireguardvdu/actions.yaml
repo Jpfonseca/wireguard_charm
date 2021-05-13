@@ -69,9 +69,10 @@
     "peer_allowed_ips":
       "description": "Allowed Ips via the VPN"
       "type": "string"
-      "default": "10.0.0.2"
+      "default": "10.0.0.2/32"
   "required":
-  - "endpoint"
-  - "client_public_key"
+  - "peer_endpoint"
+  - "peer_public_key"
+  - "peer_allowed_ips"
 "getserverinfo":
   "description": "Action that fetches data from the server"

@@ -158,14 +158,11 @@ def configuration_loadkey():
     cfg = charms.sshproxy.get_config()
     host = charms.sshproxy.get_host_ip()
     user = cfg['ssh-username']
-
+    pw = cfg['ssh-password']
     for remote_key in key_location:
         local_key = "files/" + remote_key.lstrip('/etc/wireguard/')
 
-        result, err = charms.sshproxy.sftp(local_key, remote_key, host, user)
-        if not valid_command("sftp", err, 'wireguardvdu.load.keys.failed'):
-            log('Command sftp ' + remote_key + ' failed')
-            break
+        charms.sshproxy.sftp(local_key, remote_key, host, user,pw)
     set_flag('loadkeys.done')
     status_set('maintenance', 'Load Keys Done')
 
@@ -185,7 +182,7 @@ def wireguard_config():
         clear_flag('wireguard.config')
         return
 
-    conf = "/etc/wireguard/" + config['forward_interface'] + ".conf"
+    server_wg_config = "/etc/wireguard/" + config['forward_interface'] + ".conf"
 
     with open("files/wg0.conf.template", "rb") as f:
         x = f.read()
@@ -202,20 +199,19 @@ def wireguard_config():
                                   )
 
     log(wg_conf)
-    with open("files/wg_conf.conf", "w") as f:
+
+    config_file="files/wireguard.conf"
+
+    with open(config_file, "w") as f:
         f.write(wg_conf)
     f.close()
 
     cfg = charms.sshproxy.get_config()
     host = charms.sshproxy.get_host_ip()
     user = cfg['ssh-username']
-    result, err = charms.sshproxy.sftp(wg_conf, conf, host, user)
+    pw = cfg['ssh-password']
+    charms.sshproxy.sftp(config_file, server_wg_config, host, user, pw)
 
-    if not valid_command("sftp", err, 'wireguard.config.failed'):
-        log('Command sftp ' + conf + ' failed')
-        return
-
-    log(result)
     set_flag('wireguard.start')
 
 
