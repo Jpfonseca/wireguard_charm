@@ -257,6 +257,10 @@ def start_wireguard():
 #
 # Actions
 #
+# Warning:   function_set()
+# Keys must start and end with lowercase alphanumeric,
+# and contain only lowercase alphanumeric, hyphens and periods
+#
 
 
 @when('actions.touch')
@@ -291,7 +295,7 @@ def addpeer():
     f.close()
 
     wgconf = (x.decode()).format(peer_endpoint, peer_listen_port, peer_public_key, allowed_ips)
-    cmd = ['echo {} |sudo tee -a {}'.format(wgconf, conf)]
+    cmd = ['echo "{}" |sudo tee -a {}'.format(wgconf, conf)]
 
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
