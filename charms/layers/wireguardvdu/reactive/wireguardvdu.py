@@ -18,9 +18,10 @@ from charmhelpers.core.hookenv import (
     config,
     log,
     status_set,
-    action_get,
-    action_fail,
-    action_set
+    function_get,
+    function_fail,
+    function_set,
+    function_log
 )
 from charms.reactive import (
     clear_flag,
@@ -169,7 +170,7 @@ def configuration_loadkey():
     for remote_key in key_location:
         local_key = "files/" + remote_key.lstrip('/etc/wireguard/')
 
-        charms.sshproxy.sftp(local_key, remote_key, host, user,pw)
+        charms.sshproxy.sftp(local_key, remote_key, host, user, pw)
     set_flag('loadkeys.done')
     status_set('maintenance', 'Load Keys Done')
 
@@ -207,7 +208,7 @@ def wireguard_config():
 
     log(wg_conf)
 
-    config_file="files/wireguard.conf"
+    config_file = "files/wireguard.conf"
 
     with open(config_file, "w") as f:
         f.write(wg_conf)
@@ -243,7 +244,11 @@ def start_wireguard():
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
         return
 
-    log("Wireguard config:\n" + result)
+    if result is not None:
+        log("Wireguard config:\n" + result)
+    else:
+        return
+
     status_set('active', 'Wireguard installed and configured')
     set_flag('wireguardvdu.installed')
     status_set('active', 'Ready!')
@@ -257,14 +262,14 @@ def start_wireguard():
 @when('actions.touch')
 @when('wireguardvdu.installed')
 def touch():
-    filename = action_get('filename')
+    filename = function_get('filename')
     cmd = ['touch {}'.format(filename)]
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'action.touch.failed'):
-        action_fail('command failed:' + err)
+        function_fail('command failed:' + err)
         return
 
-    action_set({'output': result, "errors": err})
+    function_set({'output': result, "errors": err})
     clear_flag('actions.touch')
 
 
@@ -274,10 +279,10 @@ def touch():
 @when('wireguardvdu.installed')
 def addpeer():
 
-    peer_endpoint = action_get('peer_endpoint')
-    peer_public_key = action_get('peer_public_key')
-    peer_listen_port = action_get('peer_listen_port')
-    allowed_ips = action_get('peer_allowed_ips')
+    peer_endpoint = function_get('peer_endpoint')
+    peer_public_key = function_get('peer_public_key')
+    peer_listen_port = function_get('peer_listen_port')
+    allowed_ips = function_get('peer_allowed_ips')
 
     conf = "/etc/wireguard/" + config['forward_interface'] + ".conf"
 
@@ -290,24 +295,24 @@ def addpeer():
 
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
-        action_fail('command failed:' + err)
-        action_set({'output': result, "errors": err})
+        function_fail('command failed:' + err)
+        function_set({'output': result, "errors": err})
         clear_flag('actions.addpeer')
         return
 
-    log(result)
+    function_log(result)
 
     cmd = ['sudo wg-quick down {} && sudo wg-quick up {}'.format(config['forward_interface'],
                                                                  config['forward_interface'])]
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
-        action_fail('command failed:' + err)
-        action_set({'output': result, "errors": err})
+        function_fail('command failed:' + err)
+        function_set({'output': result, "errors": err})
         clear_flag('actions.addpeer')
         return
 
-    action_set({'output': result, "errors": err})
-    log(result)
+    function_set({'output': result, "errors": err})
+    function_log(result)
     clear_flag('actions.addpeer')
 
 
@@ -318,18 +323,18 @@ def get_server_info():
     cmd = ['sudo cat {}'.format(filename)]
     pubkey, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'config.keygen'):
-        action_fail('command failed:' + err)
-        action_set({'output': pubkey, "errors": err})
+        function_fail('command failed:' + err)
+        function_set({'output': pubkey, "errors": err})
         clear_flag('actions.get_server_info')
         return
 
     host = charms.sshproxy.get_host_ip()
 
-    action_set(
+    function_set(
         {
             'endpoint': host,
-            'listen_port':     str(config['listen_port']),
-            'tunnel_address':     config['tunnel_address'],
+            'listen-port':     str(config['listen_port']),
+            'tunnel-address':     config['tunnel_address'],
             'publickey': pubkey
         }
     )
