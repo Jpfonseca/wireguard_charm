@@ -75,6 +75,13 @@ def install_packages():
         return
     set_flag('wireguardvdu.apt.installed')
 
+    wireguard_location = '/etc/wireguard'
+    cmd = ['sudo chown -R $USER {}'.format(wireguard_location)]
+    result, err = ssh_command(cmd)
+
+    if not valid_command(cmd, err, 'wireguardvdu.apt.not_installed'):
+        return
+
     status_set('maintenance', 'Package Wireguard Installed')
 
 
