@@ -16,5 +16,5 @@
 ##
 peer_endpoint : 10.0.13.156
 peer_public_key: "G9gMVNgYMWujcCq8qJwvPLrZwFYzltzTS1po1/FeuwE="
-peer_listen_port: 51820
+peer_listen_port: "51820"
 peer_allowed_ips: 10.0.0.2/24

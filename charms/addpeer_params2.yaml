@@ -14,8 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 ##
-wireguardvdu:
-    ssh-hostname: 10.0.13.124
-    ssh-username: ubuntu
-    ssh-password: ubuntu
-
+peer_endpoint : 10.0.13.124
+peer_public_key: "G9gMVNgYMWujcCq8qJwvPLrZwFYzltzTS1po1/FeuwE="
+peer_listen_port: "51820"
+peer_allowed_ips: 10.0.0.3/24
