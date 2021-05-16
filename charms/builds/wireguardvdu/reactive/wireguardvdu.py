@@ -257,6 +257,10 @@ def start_wireguard():
 #
 # Actions
 #
+# Warning:   function_set()
+# Keys must start and end with lowercase alphanumeric,
+# and contain only lowercase alphanumeric, hyphens and periods
+#
 
 
 @when('actions.touch')
@@ -276,6 +280,7 @@ def touch():
 ##############
 
 @when('actions.addpeer')
+@when_not('wireguardvdu.stopped')
 @when('wireguardvdu.installed')
 def addpeer():
 
@@ -291,7 +296,7 @@ def addpeer():
     f.close()
 
     wgconf = (x.decode()).format(peer_endpoint, peer_listen_port, peer_public_key, allowed_ips)
-    cmd = ['echo {} |sudo tee -a {}'.format(wgconf, conf)]
+    cmd = ['echo "{}" |sudo tee -a {}'.format(wgconf, conf)]
 
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
@@ -317,6 +322,7 @@ def addpeer():
 
 
 @when('actions.getserverinfo')
+@when_not('wireguardvdu.stopped')
 @when('wireguardvdu.installed')
 def get_server_info():
     filename = "/etc/wireguard/publickey"
@@ -339,3 +345,73 @@ def get_server_info():
         }
     )
     clear_flag('actions.getserverinfo')
+
+
+@when('actions.start')
+@when('wireguardvdu.installed')
+@when('wireguardvdu.stopped')
+def start():
+
+    function_log("Starting Wireguard")
+
+    cmd = ['sudo wg-quick up {}'.format(config['forward_interface'])]
+    result, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'wireguard.start.failed'):
+        return
+
+    if result is not None:
+        log("Wireguard interface up:\n" + result)
+    else:
+        return
+
+    function_set({'output': result, "errors": err})
+    function_log(result)
+    
+    clear_flag('wireguardvdu.stopped')
+    clear_flag('actions.start')
+
+
+@when('actions.stop')
+@when_not('wireguardvdu.stopped')
+@when('wireguardvdu.installed')
+def stop():
+
+    function_log("Stopping Wireguard")
+
+    cmd = ['sudo wg-quick down {}'.format(config['forward_interface'])]
+    result, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'wireguard.start.failed'):
+        return
+
+    if result is not None:
+        log("Wireguard interface up:\n" + result)
+    else:
+        return
+
+    function_set({'output': result, "errors": err})
+    function_log(result)
+    set_flag('wireguardvdu.stopped')
+    clear_flag('actions.stop')
+
+
+@when('actions.restart')
+@when_not('wireguardvdu.stopped')
+@when('wireguardvdu.installed')
+def restart():
+
+    function_log("Restarting Wireguard")
+
+    cmd = ['sudo wg-quick down {} && sudo wg-quick up {}'.format(config['forward_interface'],
+                                                                 config['forward_interface'])]
+    result, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'wireguard.start.failed'):
+        return
+
+    if result is not None:
+        log("Wireguard interface up:\n" + result)
+    else:
+        return
+
+    function_set({'output': result, "errors": err})
+    function_log(result)
+    clear_flag('actions.restart')

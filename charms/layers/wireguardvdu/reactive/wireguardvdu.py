@@ -346,12 +346,13 @@ def get_server_info():
     )
     clear_flag('actions.getserverinfo')
 
+
 @when('actions.start')
 @when('wireguardvdu.installed')
 @when('wireguardvdu.stopped')
 def start():
 
-    function_log()
+    function_log("Starting Wireguard")
 
     cmd = ['sudo wg-quick up {}'.format(config['forward_interface'])]
     result, err = ssh_command(cmd)
@@ -363,15 +364,19 @@ def start():
     else:
         return
 
+    function_set({'output': result, "errors": err})
+    function_log(result)
+    
     clear_flag('wireguardvdu.stopped')
     clear_flag('actions.start')
+
 
 @when('actions.stop')
 @when_not('wireguardvdu.stopped')
 @when('wireguardvdu.installed')
 def stop():
 
-    function_log()
+    function_log("Stopping Wireguard")
 
     cmd = ['sudo wg-quick down {}'.format(config['forward_interface'])]
     result, err = ssh_command(cmd)
@@ -383,13 +388,18 @@ def stop():
     else:
         return
 
+    function_set({'output': result, "errors": err})
+    function_log(result)
     set_flag('wireguardvdu.stopped')
     clear_flag('actions.stop')
+
 
 @when('actions.restart')
 @when_not('wireguardvdu.stopped')
 @when('wireguardvdu.installed')
 def restart():
+
+    function_log("Restarting Wireguard")
 
     cmd = ['sudo wg-quick down {} && sudo wg-quick up {}'.format(config['forward_interface'],
                                                                  config['forward_interface'])]
@@ -402,4 +412,6 @@ def restart():
     else:
         return
 
+    function_set({'output': result, "errors": err})
+    function_log(result)
     clear_flag('actions.restart')
