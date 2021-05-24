@@ -37,26 +37,6 @@ from subprocess import CalledProcessError
 config = config()
 
 
-def ssh_command(cmd):
-    result = err = None
-    try:
-        result, err = charms.sshproxy._run(cmd)
-    except CalledProcessError as e:
-        status_set('blocked', 'Command failed: {}, errors: {}'.format(e, e.output))
-    else:
-        log({'output': result, "errors": err})
-    finally:
-        return result, err
-
-
-def valid_command(cmd, err, flag):
-    if err is not None and len(err):
-        set_flag(flag)
-        status_set('blocked', 'Command failed: {}, errors: {}'.format(cmd, err))
-        return False
-    return True
-
-
 @when('sshproxy.configured')
 @when_not('wireguard.start')
 @when_not('wireguardvdu.installed')
@@ -415,3 +395,24 @@ def restart():
     function_set({'output': result, "errors": err})
     function_log(result)
     clear_flag('actions.restart')
+
+
+def ssh_command(cmd):
+    result = err = None
+    try:
+        result, err = charms.sshproxy._run(cmd)
+    except CalledProcessError as e:
+        status_set('blocked', 'Command failed: {}, errors: {}'.format(e, e.output))
+    else:
+        log({'output': result, "errors": err})
+    finally:
+        return result, err
+
+
+def valid_command(cmd, err, flag):
+    if err is not None and len(err):
+        set_flag(flag)
+        status_set('blocked', 'Command failed: {}, errors: {}'.format(cmd, err))
+        return False
+    return True
+

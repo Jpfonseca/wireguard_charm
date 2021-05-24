@@ -18,4 +18,9 @@ wireguardvdu:
     ssh-hostname: 10.0.13.124
     ssh-username: ubuntu
     ssh-password: ubuntu
-
+    listen_port: 51820
+    tunnel_address: 10.0.0.1/24
+    external_interface: eth0
+    forward_interface: wg0
+    save_config: true
+    import_tunnel_keys: false
