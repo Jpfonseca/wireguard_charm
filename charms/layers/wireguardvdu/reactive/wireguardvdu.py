@@ -305,6 +305,19 @@ def addpeer():
 @when_not('wireguardvdu.stopped')
 @when('wireguardvdu.installed')
 def get_server_info():
+    #activate cake in the interface used for the tunnel
+    data_interface = config['external_interface']
+    bandwidth = config('default_bandwidth')
+    log("Activating CAKE in interface: "+data_interface)
+    cmd = ['sudo tc qdisc add dev {} root cake bandwidth {}kbit'.format(data_interface, bandwidth)]
+    result, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'interdomainvdu.cake.failed'):
+        log('command failed:' + result)
+        log('command failed:' + err)
+    else:
+        log("Enabled CAKE")
+
+
     filename = "/etc/wireguard/publickey"
     cmd = ['sudo cat {}'.format(filename)]
     pubkey, err = ssh_command(cmd)
@@ -325,6 +338,26 @@ def get_server_info():
         }
     )
     clear_flag('actions.getserverinfo')
+
+
+@when('actions.modifytunnel')
+@when_not('wireguardvdu.stopped')
+@when('wireguardvdu.installed')
+def modify_tunnel():
+    bandwidth = function_get('bandwidth')
+    data_interface = config['external_interface']
+
+    if data_interface == "error":
+        function_fail('the data interface was not updated')
+
+    cmd = ['sudo tc qdisc change dev {} root cake bandwidth {}kbit'.format(data_interface, bandwidth)]
+    res, err = ssh_command(cmd)
+    if not valid_command(cmd, err, 'tunnel.modification.failed'):
+        function_fail('command failed:' + err)
+        function_set({'output': res, "errors": err})
+        clear_flag('actions.modifytunnel')
+        return
+    clear_flag('actions.modifytunnel')
 
 
 @when('actions.start')
