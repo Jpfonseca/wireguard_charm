@@ -75,3 +75,12 @@ addpeer:
         - peer_allowed_ips
 getserverinfo:
     description: Action that fetches data from the server
+modifytunnel:
+    description: Modifies the bandwidth limit of the tunnel.
+    params:
+        bandwidth:
+            description: New bandwidth limit in kb.
+            type: string
+            default: "100"
+    required:
+        - bandwidth
