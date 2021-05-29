@@ -13,9 +13,9 @@
 - "vpn"
 - "nfv"
 "series":
+- "trusty"
 - "xenial"
 - "bionic"
 - "focal"
-- "trusty"
 "display-name": "Wireguard-vdu"
 "subordinate": !!bool "false"

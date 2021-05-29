@@ -29,6 +29,7 @@ tags:
   - osm
   - nfv
 series:
+  - trusty
   - xenial
   - bionic
   - focal

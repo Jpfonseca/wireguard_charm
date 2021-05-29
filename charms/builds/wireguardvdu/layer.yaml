@@ -6,11 +6,12 @@
 "exclude": [".travis.yml", "tests", "tox.ini", "test-requirements.txt", "unit_tests"]
 "options":
   "basic":
-    "use_venv": !!bool "false"
+    "use_venv": !!bool "true"
     "packages": []
     "python_packages": []
     "include_system_packages": !!bool "false"
   "sshproxy": {}
   "vnfproxy": {}
   "wireguardvdu": {}
+"repo": "https://github.com/Jpfonseca/wireguard_charm.git"
 "is": "wireguardvdu"
