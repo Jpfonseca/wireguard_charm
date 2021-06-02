@@ -18,10 +18,10 @@ from charmhelpers.core.hookenv import (
     config,
     log,
     status_set,
-    function_get,
-    function_fail,
-    function_set,
-    function_log
+    action_get,
+    action_fail,
+    action_set,
+    log
 )
 from charms.reactive import (
     clear_flag,
@@ -237,7 +237,7 @@ def start_wireguard():
 #
 # Actions
 #
-# Warning:   function_set()
+# Warning:   action_set()
 # Keys must start and end with lowercase alphanumeric,
 # and contain only lowercase alphanumeric, hyphens and periods
 #
@@ -246,14 +246,14 @@ def start_wireguard():
 @when('actions.touch')
 @when('wireguardvdu.installed')
 def touch():
-    filename = function_get('filename')
+    filename = action_get('filename')
     cmd = ['touch {}'.format(filename)]
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'action.touch.failed'):
-        function_fail('command failed:' + err)
+        action_fail('command failed:' + err)
         return
 
-    function_set({'output': result, "errors": err})
+    action_set({'output': result, "errors": err})
     clear_flag('actions.touch')
 
 
@@ -264,10 +264,10 @@ def touch():
 @when('wireguardvdu.installed')
 def addpeer():
 
-    peer_endpoint = function_get('peer_endpoint')
-    peer_public_key = function_get('peer_public_key')
-    peer_listen_port = function_get('peer_listen_port')
-    allowed_ips = function_get('peer_allowed_ips')
+    peer_endpoint = action_get('peer_endpoint')
+    peer_public_key = action_get('peer_public_key')
+    peer_listen_port = action_get('peer_listen_port')
+    allowed_ips = action_get('peer_allowed_ips')
 
     conf = "/etc/wireguard/" + config['forward_interface'] + ".conf"
 
@@ -280,24 +280,24 @@ def addpeer():
 
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
-        function_fail('command failed:' + err)
-        function_set({'output': result, "errors": err})
+        action_fail('command failed:' + err)
+        action_set({'output': result, "errors": err})
         clear_flag('actions.addpeer')
         return
 
-    function_log(result)
+    log(result)
 
     cmd = ['sudo wg-quick down {} && sudo wg-quick up {}'.format(config['forward_interface'],
                                                                  config['forward_interface'])]
     result, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'wireguard.server.start.failed'):
-        function_fail('command failed:' + err)
-        function_set({'output': result, "errors": err})
+        action_fail('command failed:' + err)
+        action_set({'output': result, "errors": err})
         clear_flag('actions.addpeer')
         return
 
-    function_set({'output': result, "errors": err})
-    function_log(result)
+    action_set({'output': result, "errors": err})
+    log(result)
     clear_flag('actions.addpeer')
 
 
@@ -309,14 +309,14 @@ def get_server_info():
     cmd = ['sudo cat {}'.format(filename)]
     pubkey, err = ssh_command(cmd)
     if not valid_command(cmd, err, 'config.keygen'):
-        function_fail('command failed:' + err)
-        function_set({'output': pubkey, "errors": err})
+        action_fail('command failed:' + err)
+        action_set({'output': pubkey, "errors": err})
         clear_flag('actions.get_server_info')
         return
 
     host = charms.sshproxy.get_host_ip()
 
-    function_set(
+    action_set(
         {
             'endpoint': host,
             'listen-port':     str(config['listen_port']),
@@ -332,7 +332,7 @@ def get_server_info():
 @when('wireguardvdu.stopped')
 def start():
 
-    function_log("Starting Wireguard")
+    log("Starting Wireguard")
 
     cmd = ['sudo wg-quick up {}'.format(config['forward_interface'])]
     result, err = ssh_command(cmd)
@@ -344,8 +344,8 @@ def start():
     else:
         return
 
-    function_set({'output': result, "errors": err})
-    function_log(result)
+    action_set({'output': result, "errors": err})
+    log(result)
     
     clear_flag('wireguardvdu.stopped')
     clear_flag('actions.start')
@@ -356,7 +356,7 @@ def start():
 @when('wireguardvdu.installed')
 def stop():
 
-    function_log("Stopping Wireguard")
+    log("Stopping Wireguard")
 
     cmd = ['sudo wg-quick down {}'.format(config['forward_interface'])]
     result, err = ssh_command(cmd)
@@ -368,8 +368,8 @@ def stop():
     else:
         return
 
-    function_set({'output': result, "errors": err})
-    function_log(result)
+    action_set({'output': result, "errors": err})
+    log(result)
     set_flag('wireguardvdu.stopped')
     clear_flag('actions.stop')
 
@@ -379,7 +379,7 @@ def stop():
 @when('wireguardvdu.installed')
 def restart():
 
-    function_log("Restarting Wireguard")
+    log("Restarting Wireguard")
 
     cmd = ['sudo wg-quick down {} && sudo wg-quick up {}'.format(config['forward_interface'],
                                                                  config['forward_interface'])]
@@ -392,8 +392,8 @@ def restart():
     else:
         return
 
-    function_set({'output': result, "errors": err})
-    function_log(result)
+    action_set({'output': result, "errors": err})
+    log(result)
     clear_flag('actions.restart')
 
 

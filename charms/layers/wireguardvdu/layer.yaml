@@ -20,10 +20,10 @@ includes:
     - layer:options
     - layer:vnfproxy
     - layer:sshproxy
-repo: https://github.com/Jpfonseca/wireguard_charm.git
+#https://github.com/juju-solutions/layer-basic/pull/105
 options:
     basic:
-        #https://github.com/juju-solutions/layer-basic/pull/105
-        use_venv: true
+        use_venv: false
+repo: https://github.com/Jpfonseca/wireguard_charm.git
         
 is: wireguardvdu

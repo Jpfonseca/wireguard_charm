@@ -15,7 +15,7 @@
 # under the License.
 ##
 wireguardvdu:
-    ssh-hostname: 10.0.13.124
+    ssh-hostname: 10.0.13.214
     ssh-username: ubuntu
     ssh-password: ubuntu
     listen_port: 51820
