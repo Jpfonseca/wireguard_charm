@@ -56,6 +56,10 @@ options:
         type: string
         default: "10.0.0.1/24"
         description: "Interface server address"
+    default_bandwidth:
+        type: string
+        default: "100"
+        description: "Default bandwidth limit allowed in the interface used for the tunnel"
     external_interface:
         type: string
         default: "eth0"
